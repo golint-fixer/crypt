@@ -23,22 +23,20 @@ import (
 )
 
 type readError struct {
-	err  error
-	read int
-	msg  string
+	expected int
+	got      int
 }
 
-func newReadError(msg string, n int, err error) readError {
+func newReadError(expected, got int) readError {
 	return readError{
-		err,
-		n,
-		msg,
+		expected,
+		got,
 	}
 }
 
 func (e readError) Error() string {
-	return fmt.Sprintf("%s (read '%d' bytes)\nInner error: %v",
-		e.msg, e.read, e.err)
+	return fmt.Sprintf("Error reading: got %d bytes instead of %d",
+		e.got, e.expected)
 }
 
 func (e readError) String() string {
