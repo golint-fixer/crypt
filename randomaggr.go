@@ -19,36 +19,40 @@
 package crypt
 
 import (
-	"testing"
+	"fmt"
+	"io"
 )
 
-func TestSaltUnpredictability(t *testing.T) {
-	dict := make(map[string]bool)
-	s := NewSalter(NewRandomAggr().SecureSet(), nil)
-	count := 0
+// A source defines a source of random data and its weight from total.
+type source struct {
+	// The reader of random data.
+	Reader io.Reader
+	// The weight of current random source.
+	Weight int
+}
 
-	for i := 0; i < DefaultUnpredRounds; i++ {
-		val := s.Token(0)
+// A RandomAggr represents an aggregation of random data sources.
+type RandomAggr struct {
+	sources   []source
+	sumWeight int
+}
 
-		if _, ok := dict[val]; ok {
-			count++
-		} else {
-			dict[val] = true
+// Read fills specified byte array with random data from all sources.
+func (s *RandomAggr) Read(b []byte) (n int, err error) {
+	l := len(b)
+	pos := 0
+
+	for _, v := range s.sources {
+		count := int(float32(l) * (float32(v.Weight) / float32(s.sumWeight)))
+		n, err = v.Reader.Read(b[pos : pos+count])
+		if err != nil || n != count {
+			fmt.Printf("Error(%d): %v\n%#v\n\n", n, err, v)
+			return
 		}
+		pos += count
 	}
 
-	if count > 0 {
-		t.Errorf(
-			"Salter class could not generate unpredictable data: %d of %d",
-			count, DefaultUnpredRounds)
-	}
+	return l, nil
 }
 
-func BenchmarkSalter(b *testing.B) {
-	salter := NewSalter(NewRandomAggr().FastSet(), nil)
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		salter.Token(0)
-	}
-}
+var _ io.Reader = (*RandomAggr)(nil)

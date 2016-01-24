@@ -22,19 +22,20 @@ import (
 	"crypto/rand"
 	"io"
 	"testing"
+	"time"
 )
 
 const (
-	DEFAULT_UNPRED_ROUNDS            = 1000
-	DEFAULT_PREDICTABILITY_THRESHOLD = .05
+	DefaultUnpredRounds            = 1000
+	DefaultPredictabilityThreshold = .05
 )
 
-func testUnpredictability(r io.Reader) int {
+func testUnpred(r io.Reader) int {
 	dict := make(map[int16]bool)
 	buff := make([]byte, 2)
 	count := 0
 
-	for i := 0; i < DEFAULT_UNPRED_ROUNDS; i++ {
+	for i := 0; i < DefaultUnpredRounds; i++ {
 		r.Read(buff)
 		val := int16(buff[0]) + int16(buff[1])*256
 
@@ -48,47 +49,70 @@ func testUnpredictability(r io.Reader) int {
 	return count
 }
 
-func TestSystemRandomUnpredictability(t *testing.T) {
-	count := testUnpredictability(rand.Reader)
+func TestSystemUnpredictability(t *testing.T) {
+	count := testUnpred(rand.Reader)
 
-	if count > DEFAULT_UNPRED_ROUNDS*DEFAULT_PREDICTABILITY_THRESHOLD {
+	if count > DefaultUnpredRounds*DefaultPredictabilityThreshold {
 		t.Errorf(
 			"System random generator could not generate unpredictable data: %d of %d",
-			count, DEFAULT_UNPRED_ROUNDS)
+			count, DefaultUnpredRounds)
 	}
 	t.Logf(
 		"System random generator predictability: %.2f%%",
-		(float32(count)/float32(DEFAULT_UNPRED_ROUNDS))*100)
+		(float32(count)/float32(DefaultUnpredRounds))*100)
 }
 
-func TestRaiqubUnpredictability(t *testing.T) {
-	count := testUnpredictability(NewRandom())
+func TestSSTDEGUnpredictability(t *testing.T) {
+	rnd := NewSSTDEG()
+	defer rnd.Dispose()
 
-	if count > DEFAULT_UNPRED_ROUNDS*DEFAULT_PREDICTABILITY_THRESHOLD {
+	count := testUnpred(rnd)
+
+	if count > DefaultUnpredRounds*DefaultPredictabilityThreshold {
 		t.Errorf(
-			"Raiqub random generator could not generate unpredictable data: %d of %d",
-			count, DEFAULT_UNPRED_ROUNDS)
+			"SSTDEG random generator could not generate unpredictable data: %d of %d",
+			count, DefaultUnpredRounds)
 	}
 	t.Logf(
-		"Raiqub random generator predictability: %.2f%%",
-		(float32(count)/float32(DEFAULT_UNPRED_ROUNDS))*100)
+		"SSTDEG random generator predictability: %.2f%%",
+		(float32(count)/float32(DefaultUnpredRounds))*100)
 }
 
-func BenchmarkRaiqubRandom(b *testing.B) {
-	rnd := NewRandom()
+func TestSSTDEGFillEntropyBuffer(t *testing.T) {
+	rnd := NewSSTDEG()
+	defer rnd.Dispose()
+
+	for rnd.EntropyAvailable() < SSTDEGPoolSize {
+		time.Sleep(defaultSleepTime)
+	}
+}
+
+func BenchmarkSSTDEG(b *testing.B) {
+	rnd := NewSSTDEG()
 	buff := make([]byte, 1)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		rnd.Read(buff)
 	}
+
+	b.StopTimer()
+	rnd.Dispose()
 }
 
-func BenchmarkRaiqubRandomNL(b *testing.B) {
-	rnd := NewRandom()
+func BenchmarkSSTDEGBatch(b *testing.B) {
+	rnd := NewSSTDEG()
+	buff := make([]byte, DefaultTokenSize)
+	for rnd.EntropyAvailable() < SSTDEGPoolSize {
+		// Waits for entropy buffer filling
+		time.Sleep(time.Millisecond)
+	}
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		rnd.readByte()
+		rnd.Read(buff)
 	}
+
+	b.StopTimer()
+	rnd.Dispose()
 }
