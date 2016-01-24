@@ -6,12 +6,15 @@ cryptographic operations.
 ## Status
 
 [![Build Status](https://img.shields.io/travis/raiqub/crypt/master.svg?style=flat&label=linux%20build)](https://travis-ci.org/raiqub/crypt)
+[![AppVeyor Build](https://img.shields.io/appveyor/ci/skarllot/crypt/master.svg?style=flat&label=windows%20build)](https://ci.appveyor.com/project/skarllot/crypt)
 [![Coverage Status](https://coveralls.io/repos/raiqub/crypt/badge.svg?branch=master&service=github)](https://coveralls.io/github/raiqub/crypt?branch=master)
 [![GoDoc](https://godoc.org/github.com/raiqub/crypt?status.svg)](http://godoc.org/github.com/raiqub/crypt)
 
 ## Features
 
- * Soon
+ * **RandomAggr** type which provides an aggregated random data sources.
+ * **Salter** type to create password salts and unique session IDs.
+ * **SSTDEG** type which provides a System Sleep Time Delta Entropy Gathering.
 
 ## Installation
 
