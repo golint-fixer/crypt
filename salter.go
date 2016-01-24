@@ -67,11 +67,11 @@ func (s *Salter) BToken(size int) []byte {
 	buf := make([]byte, size)
 
 	n, err := s.rnd.Read(buf)
-	if n != size {
-		err = newReadError(size, n)
-	}
 	if err != nil {
 		panic(err)
+	}
+	if n != size {
+		panic(newReadError(size, n))
 	}
 
 	mac.Write(buf)

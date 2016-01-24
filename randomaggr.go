@@ -18,10 +18,7 @@
 
 package crypt
 
-import (
-	"fmt"
-	"io"
-)
+import "io"
 
 // A source defines a source of random data and its weight from total.
 type source struct {
@@ -45,11 +42,11 @@ func (s *RandomAggr) Read(b []byte) (n int, err error) {
 	for _, v := range s.sources {
 		count := int(float32(l) * (float32(v.Weight) / float32(s.sumWeight)))
 		n, err = v.Reader.Read(b[pos : pos+count])
+		if err != nil {
+			return
+		}
 		if n != count {
 			err = newReadError(count, n)
-		}
-		if err != nil {
-			fmt.Printf("Error(%d): %v\n%#v\n\n", n, err, v)
 			return
 		}
 		pos += count
