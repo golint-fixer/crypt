@@ -17,9 +17,9 @@
 /*
 Package crypt provides some cryptographic operations.
 
-Random
+SSTDEG
 
-A Random provides a pseudo-random generator based on syscall time deltas of
+A SSTDEG provides a pseudo-random generator based on syscall time deltas of
 Sleep calls. It implements io.Reader interface.
 
 Salter

@@ -68,7 +68,10 @@ func (s *Salter) BToken(size int) []byte {
 
 	n, err := s.rnd.Read(buf)
 	if err != nil || n != size {
-		panic("Could not access secure random generator")
+		panic(newReadError(
+			"Could not access secure random generator",
+			n, err,
+		))
 	}
 
 	mac.Write(buf)
