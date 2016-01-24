@@ -26,7 +26,7 @@ import (
 
 const (
 	// Defines default sleep time to ensure unpredictability.
-	defaultSleepTime = time.Microsecond * 10
+	defaultSleepTime = time.Microsecond * 1
 
 	// SSTDEGPoolSize defines the size of entropy pool.
 	SSTDEGPoolSize = 4096
@@ -55,13 +55,18 @@ func NewSSTDEG() *SSTDEG {
 	return result
 }
 
-// Dispose stops background routine that fills entropy pool.
-func (s *SSTDEG) Dispose() {
+// Close stops background routine that fills entropy pool.
+func (s *SSTDEG) Close() error {
+	if s.mutex == nil {
+		return nil
+	}
+
 	s.stop <- true
 
 	s.mutex = nil
 	s.size = 0
 	s.stop = nil
+	return nil
 }
 
 // EntropyAvailable returns the entropy pool size of current instance.
@@ -90,16 +95,22 @@ func (s *SSTDEG) pop(b []byte) bool {
 // Read fills specified byte array with random data.
 // Always return parameter array length and no errors.
 func (s *SSTDEG) Read(b []byte) (n int, err error) {
-	ok := s.pop(b)
-
-	for !ok {
-		select {
-		case <-time.After(defaultSleepTime):
-			ok = s.pop(b)
-		}
+	var chunk []byte
+	if len(b) > SSTDEGPoolSize {
+		chunk = b[:SSTDEGPoolSize]
+		err = io.EOF
+	} else {
+		chunk = b
 	}
 
-	return len(b), nil
+	ok := s.pop(chunk)
+
+	for !ok {
+		time.Sleep(defaultSleepTime)
+		ok = s.pop(chunk)
+	}
+
+	return len(chunk), err
 }
 
 // generator fills entropy pool for this instance.
@@ -115,7 +126,7 @@ func (s *SSTDEG) generator() {
 		select {
 		case <-time.After(defaultSleepTime + rndDuration):
 			diff := time.Now().Sub(before)
-			n := byte(diff.Nanoseconds())
+			n := byte(diff.Nanoseconds() / 100)
 
 			rndBits[index] = n
 			index ^= 1
@@ -144,4 +155,4 @@ func getUInt16FromBytes(input [2]byte) uint16 {
 	return uint16(input[0]) + uint16(input[1])*256
 }
 
-var _ io.Reader = (*SSTDEG)(nil)
+var _ io.ReadCloser = (*SSTDEG)(nil)

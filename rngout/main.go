@@ -16,46 +16,26 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package crypt
+// This test program outputs to STDOUT SSTDEG random generator.
+// Its output randomness can be checked against FIPS 140-2 tests provided by
+// 'rngtest' program.
+package main
 
 import (
-	"testing"
+	"bufio"
+	"os"
+
+	"github.com/raiqub/crypt"
 )
 
-func TestSaltUnpredictability(t *testing.T) {
-	dict := make(map[string]bool)
-	s := NewSalter(NewRandomAggr().SecureSet(), nil)
-	defer s.Dispose()
-	count := 0
+func main() {
+	rng := crypt.NewSSTDEG()
+	defer rng.Close()
 
-	for i := 0; i < TestingRounds; i++ {
-		val, err := s.Token(0)
-		if err != nil {
-			t.Fatalf("Error creating a new token: %v", err)
-		}
+	scanner := bufio.NewScanner(rng)
+	sout := bufio.NewWriter(os.Stdout)
 
-		if _, ok := dict[val]; ok {
-			count++
-		} else {
-			dict[val] = true
-		}
+	for scanner.Scan() {
+		sout.Write(scanner.Bytes())
 	}
-
-	if count > 0 {
-		t.Errorf(
-			"Salter class could not generate unpredictable data: %d of %d",
-			count, TestingRounds)
-	}
-}
-
-func BenchmarkSalter(b *testing.B) {
-	salter := NewSalter(NewRandomAggr().FastSet(), nil)
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		salter.Token(0)
-	}
-
-	b.StopTimer()
-	salter.Dispose()
 }

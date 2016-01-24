@@ -109,17 +109,34 @@ func (b *rndaggb) InsecureSet() *RandomAggr {
 }
 
 func (b *rndaggb) SecureSet() *RandomAggr {
+	sstdeg := NewSSTDEG()
 	return &RandomAggr{
 		[]source{
 			{
 				Reader: rand.Reader,
-				Weight: 16,
+				Weight: 8,
 			},
 			{
-				Reader: NewSSTDEG(),
-				Weight: 3,
+				Reader: sstdeg,
+				Weight: 1,
+			},
+			{
+				Reader: rand.Reader,
+				Weight: 4,
+			},
+			{
+				Reader: sstdeg,
+				Weight: 1,
+			},
+			{
+				Reader: rand.Reader,
+				Weight: 4,
+			},
+			{
+				Reader: sstdeg,
+				Weight: 1,
 			},
 		},
-		16 + 3,
+		8 + 1 + 4 + 1 + 4 + 1,
 	}
 }

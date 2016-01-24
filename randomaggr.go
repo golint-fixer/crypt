@@ -34,25 +34,40 @@ type RandomAggr struct {
 	sumWeight int
 }
 
+// Close iterate over io.Closer sources to close them.
+func (s *RandomAggr) Close() error {
+	var err error
+	for _, v := range s.sources {
+		if closer, ok := v.Reader.(io.Closer); ok {
+			itemErr := closer.Close()
+			if err == nil {
+				err = itemErr
+			}
+		}
+	}
+
+	return err
+}
+
 // Read fills specified byte array with random data from all sources.
 func (s *RandomAggr) Read(b []byte) (n int, err error) {
-	l := len(b)
+	remainder := len(b)
 	pos := 0
+	sumWeight := s.sumWeight
 
 	for _, v := range s.sources {
-		count := int(float32(l) * (float32(v.Weight) / float32(s.sumWeight)))
+		count := int(float32(remainder) * (float32(v.Weight) / float32(sumWeight)))
 		n, err = v.Reader.Read(b[pos : pos+count])
 		if err != nil {
 			return
 		}
-		if n != count {
-			err = newReadError(count, n)
-			return
-		}
-		pos += count
+
+		pos += n
+		remainder -= n
+		sumWeight -= v.Weight
 	}
 
-	return l, nil
+	return len(b) - remainder, nil
 }
 
-var _ io.Reader = (*RandomAggr)(nil)
+var _ io.ReadCloser = (*RandomAggr)(nil)

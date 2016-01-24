@@ -23,19 +23,23 @@ import (
 	"io"
 	"testing"
 	"time"
+
+	"github.com/GaryBoone/GoStats/stats"
 )
 
 const (
-	DefaultUnpredRounds            = 1000
-	DefaultPredictabilityThreshold = .05
+	TestingRounds            = 1000
+	PredictabilityThreshold  = .05
+	MinimumStandardDeviation = 65.0
 )
 
-func testUnpred(r io.Reader) int {
+func testUnpred(r io.Reader) (int, float64) {
 	dict := make(map[int16]bool)
 	buff := make([]byte, 2)
 	count := 0
+	var prob stats.Stats
 
-	for i := 0; i < DefaultUnpredRounds; i++ {
+	for i := 0; i < TestingRounds; i++ {
 		r.Read(buff)
 		val := int16(buff[0]) + int16(buff[1])*256
 
@@ -44,43 +48,55 @@ func testUnpred(r io.Reader) int {
 		} else {
 			dict[val] = true
 		}
+		prob.Update(float64(buff[0]))
+		prob.Update(float64(buff[1]))
 	}
 
-	return count
+	return count, prob.PopulationStandardDeviation()
 }
 
 func TestSystemUnpredictability(t *testing.T) {
-	count := testUnpred(rand.Reader)
+	count, stddev := testUnpred(rand.Reader)
 
-	if count > DefaultUnpredRounds*DefaultPredictabilityThreshold {
+	if count > TestingRounds*PredictabilityThreshold {
 		t.Errorf(
-			"System random generator could not generate unpredictable data: %d of %d",
-			count, DefaultUnpredRounds)
+			"System random generator: %d dups of %d",
+			count, TestingRounds)
+	}
+	if stddev < MinimumStandardDeviation {
+		t.Errorf(
+			"System random generator: %.2f STDDEV (%.2f minimum)",
+			stddev, MinimumStandardDeviation)
 	}
 	t.Logf(
-		"System random generator predictability: %.2f%%",
-		(float32(count)/float32(DefaultUnpredRounds))*100)
+		"System random generator: %.2f%% dups/%.2f STDDEV",
+		(float32(count)/float32(TestingRounds))*100, stddev)
 }
 
 func TestSSTDEGUnpredictability(t *testing.T) {
 	rnd := NewSSTDEG()
-	defer rnd.Dispose()
+	defer rnd.Close()
 
-	count := testUnpred(rnd)
+	count, stddev := testUnpred(rnd)
 
-	if count > DefaultUnpredRounds*DefaultPredictabilityThreshold {
+	if count > TestingRounds*PredictabilityThreshold {
 		t.Errorf(
-			"SSTDEG random generator could not generate unpredictable data: %d of %d",
-			count, DefaultUnpredRounds)
+			"SSTDEG random generator: %d dups of %d",
+			count, TestingRounds)
+	}
+	if stddev < MinimumStandardDeviation {
+		t.Errorf(
+			"SSTDEG random generator: %.2f STDDEV (%.2f minimum)",
+			stddev, MinimumStandardDeviation)
 	}
 	t.Logf(
-		"SSTDEG random generator predictability: %.2f%%",
-		(float32(count)/float32(DefaultUnpredRounds))*100)
+		"SSTDEG random generator: %.2f%% dups/%.2f STDDEV",
+		(float32(count)/float32(TestingRounds))*100, stddev)
 }
 
 func TestSSTDEGFillEntropyBuffer(t *testing.T) {
 	rnd := NewSSTDEG()
-	defer rnd.Dispose()
+	defer rnd.Close()
 
 	for rnd.EntropyAvailable() < SSTDEGPoolSize {
 		time.Sleep(defaultSleepTime)
@@ -89,30 +105,36 @@ func TestSSTDEGFillEntropyBuffer(t *testing.T) {
 
 func BenchmarkSSTDEG(b *testing.B) {
 	rnd := NewSSTDEG()
-	buff := make([]byte, 1)
+	buff := make([]byte, b.N)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
-		rnd.Read(buff)
+	n, err := rnd.Read(buff)
+	idx := n - 1
+	for err == io.EOF {
+		n, err = rnd.Read(buff[idx:])
+		idx += n - 1
 	}
 
 	b.StopTimer()
-	rnd.Dispose()
+	rnd.Close()
 }
 
-func BenchmarkSSTDEGBatch(b *testing.B) {
+func BenchmarkSSTDEGWait(b *testing.B) {
 	rnd := NewSSTDEG()
-	buff := make([]byte, DefaultTokenSize)
+	buff := make([]byte, b.N)
 	for rnd.EntropyAvailable() < SSTDEGPoolSize {
 		// Waits for entropy buffer filling
 		time.Sleep(time.Millisecond)
 	}
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
-		rnd.Read(buff)
+	n, err := rnd.Read(buff)
+	idx := n - 1
+	for err == io.EOF {
+		n, err = rnd.Read(buff[idx:])
+		idx += n - 1
 	}
 
 	b.StopTimer()
-	rnd.Dispose()
+	rnd.Close()
 }

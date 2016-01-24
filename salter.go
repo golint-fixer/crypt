@@ -58,7 +58,9 @@ func NewSalter(rnd io.Reader, input []byte) *Salter {
 // parameter.
 //
 // To use default token size the size parameter must be set to zero.
-func (s *Salter) BToken(size int) []byte {
+//
+// Returns ErrUnexpectedEOF when random source cannot deliver enough bytes.
+func (s *Salter) BToken(size int) ([]byte, error) {
 	if size < 1 {
 		size = DefaultTokenSize
 	}
@@ -68,23 +70,42 @@ func (s *Salter) BToken(size int) []byte {
 
 	n, err := s.rnd.Read(buf)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	if n != size {
-		panic(newReadError(size, n))
+		return nil, io.ErrUnexpectedEOF
 	}
 
 	mac.Write(buf)
 	macSum := mac.Sum(nil)
 	s.salt = macSum
 
-	return macSum
+	return macSum, nil
+}
+
+// Dispose closes reader whether it implements io.Closer.
+func (s *Salter) Dispose() {
+	if s.rnd == nil {
+		return
+	}
+
+	if closer, ok := s.rnd.(io.Closer); ok {
+		closer.Close()
+	}
+	s.rnd = nil
 }
 
 // Token generates a base-64 string of random bytes with length as specified by
 // size parameter.
 //
 // To use default token size the size parameter must be set to zero.
-func (s *Salter) Token(size int) string {
-	return base64.URLEncoding.EncodeToString(s.BToken(size))
+//
+// Returns ErrUnexpectedEOF when random source cannot deliver enough bytes.
+func (s *Salter) Token(size int) (string, error) {
+	token, err := s.BToken(size)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.URLEncoding.EncodeToString(token), nil
 }
