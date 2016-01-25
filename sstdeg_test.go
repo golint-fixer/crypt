@@ -98,7 +98,7 @@ func TestSSTDEGFillEntropyBuffer(t *testing.T) {
 	rnd := NewSSTDEG()
 	defer rnd.Close()
 
-	for rnd.EntropyAvailable() < SSTDEGPoolSize {
+	for rnd.EntropyAvailable() < defaultPoolSize {
 		time.Sleep(defaultSleepTime)
 	}
 }
@@ -122,7 +122,7 @@ func BenchmarkSSTDEG(b *testing.B) {
 func BenchmarkSSTDEGWait(b *testing.B) {
 	rnd := NewSSTDEG()
 	buff := make([]byte, b.N)
-	for rnd.EntropyAvailable() < SSTDEGPoolSize {
+	for rnd.EntropyAvailable() < defaultPoolSize {
 		// Waits for entropy buffer filling
 		time.Sleep(time.Millisecond)
 	}

@@ -83,7 +83,7 @@ func (s *Salter) BToken(size int) ([]byte, error) {
 	return macSum, nil
 }
 
-// Dispose closes reader whether it implements io.Closer.
+// Dispose closes reader if it implements io.Closer.
 func (s *Salter) Dispose() {
 	if s.rnd == nil {
 		return

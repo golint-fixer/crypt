@@ -17,15 +17,22 @@
 /*
 Package crypt provides some cryptographic operations.
 
-SSTDEG
+RandomAggr
 
-A SSTDEG provides a pseudo-random generator based on syscall time deltas of
-Sleep calls. It implements io.Reader interface.
+A RandomAggr allows to aggregate random data sources to fill a buffer. Each
+source has weight to control the percentage from total to be read.
+
+It implements the io.ReadCloser interface to allow to close sources if needed.
 
 Salter
 
 A Salter provides a random data generator to password salt and unique session
 IDs. Every token generated is used to salt next token to increase
 unpredictability of generated data.
+
+SSTDEG
+
+A SSTDEG provides a pseudo-random generator based on syscall time deltas of
+Sleep calls. It implements io.Reader interface.
 */
 package crypt

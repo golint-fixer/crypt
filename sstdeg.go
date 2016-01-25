@@ -26,16 +26,16 @@ import (
 
 const (
 	// Defines default sleep time to ensure unpredictability.
-	defaultSleepTime = time.Microsecond * 1
+	defaultSleepTime = time.Nanosecond * 200
 
-	// SSTDEGPoolSize defines the size of entropy pool.
-	SSTDEGPoolSize = 4096
+	// defaultPoolSize defines the size of entropy pool for SSTDEG.
+	defaultPoolSize = 4096
 )
 
 // A SSTDEG (System Sleep Time Delta Entropy Gathering) provides a pseudo-random
 // generator based on unpredictable syscall time deltas of sleep calls.
 type SSTDEG struct {
-	pool  [SSTDEGPoolSize]byte
+	pool  [defaultPoolSize]byte
 	size  int
 	mutex *sync.Mutex
 	stop  chan bool
@@ -96,8 +96,8 @@ func (s *SSTDEG) pop(b []byte) bool {
 // Always return parameter array length and no errors.
 func (s *SSTDEG) Read(b []byte) (n int, err error) {
 	var chunk []byte
-	if len(b) > SSTDEGPoolSize {
-		chunk = b[:SSTDEGPoolSize]
+	if len(b) > defaultPoolSize {
+		chunk = b[:defaultPoolSize]
 		err = io.EOF
 	} else {
 		chunk = b
@@ -132,11 +132,11 @@ func (s *SSTDEG) generator() {
 			index ^= 1
 
 			s.mutex.Lock()
-			if s.size < SSTDEGPoolSize {
+			if s.size < defaultPoolSize {
 				s.pool[s.size] = n
 				s.size++
 			} else {
-				if overflowCounter == SSTDEGPoolSize {
+				if overflowCounter == defaultPoolSize {
 					overflowCounter = 0
 				}
 
