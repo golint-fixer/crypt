@@ -20,15 +20,15 @@ cryptographic operations.
 
 To install raiqub/crypt library run the following command:
 
-~~~ bash
+```bash
 go get gopkg.in/raiqub/crypt.v0
-~~~
+```
 
 To import this package, add the following line to your code:
 
-~~~ bash
+```bash
 import "gopkg.in/raiqub/crypt.v0"
-~~~
+```
 
 ## Examples
 
@@ -36,11 +36,11 @@ Examples can be found on [library documentation][doc].
 
 ## Running tests
 
-The tests can be run via the usual `go test` procedure:
+The tests can be run via the provided Bash script:
 
-~~~ bash
-go test -v --race ./...
-~~~
+```bash
+./test.sh
+```
 
 ## License
 

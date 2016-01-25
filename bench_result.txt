@@ -1,3 +1,4 @@
-BenchmarkSalter-4    	  200000	     10109 ns/op	     672 B/op	       9 allocs/op
-BenchmarkSSTDEG-4    	   20000	     96517 ns/op	    3655 B/op	      57 allocs/op
-BenchmarkSSTDEGWait-4	   30000	     81137 ns/op	    3053 B/op	      47 allocs/op
+BenchmarkSalter-4      	  200000	     10029 ns/op	     672 B/op	       9 allocs/op
+BenchmarkSalterSecure-4	    2000	    998320 ns/op	   37179 B/op	     579 allocs/op
+BenchmarkSSTDEG-4      	   20000	     98468 ns/op	    3762 B/op	      58 allocs/op
+BenchmarkSSTDEGWait-4  	   30000	     83015 ns/op	    3185 B/op	      49 allocs/op

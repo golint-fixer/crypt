@@ -19,6 +19,7 @@
 package crypt
 
 import (
+	"crypto/rand"
 	"testing"
 )
 
@@ -49,7 +50,19 @@ func TestSaltUnpredictability(t *testing.T) {
 }
 
 func BenchmarkSalter(b *testing.B) {
-	salter := NewSalter(NewRandomAggr().FastSet(), nil)
+	salter := NewSalter(rand.Reader, nil)
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		salter.Token(0)
+	}
+
+	b.StopTimer()
+	salter.Dispose()
+}
+
+func BenchmarkSalterSecure(b *testing.B) {
+	salter := NewSalter(NewRandomAggr().SecureSet(), nil)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
