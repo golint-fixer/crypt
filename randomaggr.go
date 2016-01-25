@@ -57,8 +57,8 @@ func (s *RandomAggr) Read(b []byte) (n int, err error) {
 
 	for _, v := range s.sources {
 		count := int(float32(remainder) * (float32(v.Weight) / float32(sumWeight)))
-		n, err = v.Reader.Read(b[pos : pos+count])
-		if err != nil {
+		n, err = io.ReadFull(v.Reader, b[pos:pos+count])
+		if err != nil && err != io.ErrUnexpectedEOF {
 			return
 		}
 

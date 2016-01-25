@@ -19,6 +19,7 @@
 package crypt
 
 import (
+	"io"
 	"testing"
 )
 
@@ -38,16 +39,20 @@ type LimitedSource struct {
 }
 
 func (s *LimitedSource) Read(b []byte) (int, error) {
+	if s.size <= 0 {
+		return 0, io.EOF
+	}
+
 	counter := 0
 
 	for i := range b {
-		if s.size <= 0 {
-			return counter, nil
-		}
-
 		b[i] = byte(s.val)
 		s.size--
 		counter++
+
+		if s.size <= 0 {
+			return counter, nil
+		}
 	}
 
 	return counter, nil
@@ -76,7 +81,7 @@ func TestRandomAggrDistribution(t *testing.T) {
 	buf := make([]byte, 100)
 	n, err := rnd.Read(buf)
 	if err != nil {
-		t.Errorf("Error reading from aggregation: %v", err)
+		t.Fatalf("Error reading from aggregation: %v", err)
 	}
 	if n != len(buf) {
 		t.Errorf("Should fill entire buffer: read %d bytes", n)
@@ -97,7 +102,7 @@ func TestRandomAggrDistribution2(t *testing.T) {
 	buf := make([]byte, 100)
 	n, err := rnd.Read(buf)
 	if err != nil {
-		t.Errorf("Error reading from aggregation: %v", err)
+		t.Fatalf("Error reading from aggregation: %v", err)
 	}
 	if n != len(buf) {
 		t.Errorf("Should fill entire buffer: read %d bytes", n)
@@ -118,7 +123,7 @@ func TestRandomAggrInsufficient(t *testing.T) {
 	buf := make([]byte, 100)
 	n, err := rnd.Read(buf)
 	if err != nil {
-		t.Errorf("Error reading from aggregation: %v", err)
+		t.Fatalf("Error reading from aggregation: %v", err)
 	}
 	if n != 60 {
 		t.Errorf("Should read 60 bytes: read %d bytes", n)
@@ -140,7 +145,7 @@ func TestRandomAggrWeight(t *testing.T) {
 	buf := make([]byte, 10+8+3)
 	n, err := rnd.Read(buf)
 	if err != nil {
-		t.Errorf("Error reading from aggregation: %v", err)
+		t.Fatalf("Error reading from aggregation: %v", err)
 	}
 	if n != len(buf) {
 		t.Errorf("Should fill entire buffer: read %d bytes", n)
@@ -160,7 +165,7 @@ func TestRandomAggrRepeatingDecimal(t *testing.T) {
 	buf := make([]byte, 9)
 	n, err := rnd.Read(buf)
 	if err != nil {
-		t.Errorf("Error reading from aggregation: %v", err)
+		t.Fatalf("Error reading from aggregation: %v", err)
 	}
 	if n != len(buf) {
 		t.Errorf("Should fill entire buffer: read %d bytes", n)
@@ -179,7 +184,7 @@ func TestRandomAggrRepeatingDecimal2(t *testing.T) {
 	buf := make([]byte, 10)
 	n, err := rnd.Read(buf)
 	if err != nil {
-		t.Errorf("Error reading from aggregation: %v", err)
+		t.Fatalf("Error reading from aggregation: %v", err)
 	}
 	if n != len(buf) {
 		t.Errorf("Should fill entire buffer: read %d bytes", n)

@@ -98,7 +98,6 @@ func (s *SSTDEG) Read(b []byte) (n int, err error) {
 	var chunk []byte
 	if len(b) > defaultPoolSize {
 		chunk = b[:defaultPoolSize]
-		err = io.EOF
 	} else {
 		chunk = b
 	}

@@ -68,12 +68,9 @@ func (s *Salter) BToken(size int) ([]byte, error) {
 	mac := hmac.New(sha256.New, s.salt)
 	buf := make([]byte, size)
 
-	n, err := s.rnd.Read(buf)
+	_, err := io.ReadFull(s.rnd, buf)
 	if err != nil {
 		return nil, err
-	}
-	if n != size {
-		return nil, io.ErrUnexpectedEOF
 	}
 
 	mac.Write(buf)

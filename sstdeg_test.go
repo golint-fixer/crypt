@@ -29,11 +29,11 @@ import (
 
 const (
 	TestingRounds            = 1000
-	PredictabilityThreshold  = .05
-	MinimumStandardDeviation = 65.0
+	MaximumDups              = .05
+	MinimumStandardDeviation = 50.0
 )
 
-func testUnpred(r io.Reader) (int, float64) {
+func testUnpred(r io.Reader) (float64, float64) {
 	dict := make(map[int16]bool)
 	buff := make([]byte, 2)
 	count := 0
@@ -52,16 +52,17 @@ func testUnpred(r io.Reader) (int, float64) {
 		prob.Update(float64(buff[1]))
 	}
 
-	return count, prob.PopulationStandardDeviation()
+	return float64(count) / float64(TestingRounds),
+		prob.PopulationStandardDeviation()
 }
 
 func TestSystemUnpredictability(t *testing.T) {
-	count, stddev := testUnpred(rand.Reader)
+	dups, stddev := testUnpred(rand.Reader)
 
-	if count > TestingRounds*PredictabilityThreshold {
+	if dups > MaximumDups {
 		t.Errorf(
 			"System random generator: %d dups of %d",
-			count, TestingRounds)
+			int(TestingRounds*dups), TestingRounds)
 	}
 	if stddev < MinimumStandardDeviation {
 		t.Errorf(
@@ -70,19 +71,19 @@ func TestSystemUnpredictability(t *testing.T) {
 	}
 	t.Logf(
 		"System random generator: %.2f%% dups/%.2f STDDEV",
-		(float32(count)/float32(TestingRounds))*100, stddev)
+		dups*100, stddev)
 }
 
 func TestSSTDEGUnpredictability(t *testing.T) {
 	rnd := NewSSTDEG()
 	defer rnd.Close()
 
-	count, stddev := testUnpred(rnd)
+	dups, stddev := testUnpred(rnd)
 
-	if count > TestingRounds*PredictabilityThreshold {
+	if dups > MaximumDups {
 		t.Errorf(
 			"SSTDEG random generator: %d dups of %d",
-			count, TestingRounds)
+			int(TestingRounds*dups), TestingRounds)
 	}
 	if stddev < MinimumStandardDeviation {
 		t.Errorf(
@@ -91,7 +92,7 @@ func TestSSTDEGUnpredictability(t *testing.T) {
 	}
 	t.Logf(
 		"SSTDEG random generator: %.2f%% dups/%.2f STDDEV",
-		(float32(count)/float32(TestingRounds))*100, stddev)
+		dups*100, stddev)
 }
 
 func TestSSTDEGFillEntropyBuffer(t *testing.T) {
@@ -108,11 +109,12 @@ func BenchmarkSSTDEG(b *testing.B) {
 	buff := make([]byte, b.N)
 	b.ResetTimer()
 
-	n, err := rnd.Read(buff)
-	idx := n - 1
-	for err == io.EOF {
-		n, err = rnd.Read(buff[idx:])
-		idx += n - 1
+	n, err := io.ReadFull(rnd, buff)
+	if err != nil {
+		b.Fatalf("Error reading SSTDEG: %v", err)
+	} else if n < len(buff) {
+		b.Fatalf("Error reading SSTDEG: should read %d bytes but read %d",
+			len(buff), n)
 	}
 
 	b.StopTimer()
@@ -128,11 +130,12 @@ func BenchmarkSSTDEGWait(b *testing.B) {
 	}
 	b.ResetTimer()
 
-	n, err := rnd.Read(buff)
-	idx := n - 1
-	for err == io.EOF {
-		n, err = rnd.Read(buff[idx:])
-		idx += n - 1
+	n, err := io.ReadFull(rnd, buff)
+	if err != nil {
+		b.Fatalf("Error reading SSTDEG: %v", err)
+	} else if n < len(buff) {
+		b.Fatalf("Error reading SSTDEG: should read %d bytes but read %d",
+			len(buff), n)
 	}
 
 	b.StopTimer()
